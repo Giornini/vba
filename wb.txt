@@ -1,5 +1,5 @@
 Private Sub Workbook_Open()
-    ThisWorkbook.Protect Password:="3097"
+    ThisWorkbook.Protect Password:="3097", structure:=True
     Conos.Protect Password:="3097", UserInterfaceOnly:=True
     consumo.Protect Password:="3097", UserInterfaceOnly:=True
     Exist.Protect Password:="3097", UserInterfaceOnly:=True
