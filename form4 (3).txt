@@ -170,10 +170,10 @@ Private Sub UserForm_Activate()
         .Top = Me.Height * 0.4
         .Left = Me.Width * 0.47
         .ColumnCount = 4
-        .ColumnWidths = Int(Me.caja1.Width) * 0.45 & ";" & _
-                        Int(Me.caja1.Width) * 0.2 & ";" & _
-                        Int(Me.caja1.Width) * 0.1 & ";" & _
-                        Int(Me.caja1.Width) * 0.2
+        .ColumnWidths = Int(Me.caja1.Width * 0.45) & ";" & _
+                        Int(Me.caja1.Width * 0.2) & ";" & _
+                        Int(Me.caja1.Width * 0.1) & ";" & _
+                        Int(Me.caja1.Width * 0.2)
         .Font.Size = Me.Height * 0.026
         .TextAlign = fmTextAlignCenter
     End With
@@ -331,8 +331,8 @@ Private Sub UserForm_Activate()
         .Top = Me.Height * 0.4
         .Left = Me.Width * 0.03
         .ColumnCount = 2
-        .ColumnWidths = Int(Me.caja2.Width) * 0.6 & ";" & _
-                        Int(Me.caja2.Width) * 0.39 & ";"
+        .ColumnWidths = Int(Me.caja2.Width * 0.6) & ";" & _
+                        Int(Me.caja2.Width * 0.39) & ";"
         .Font.Size = Me.Height * 0.026
         .TextAlign = fmTextAlignCenter
     End With
