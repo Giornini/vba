@@ -1,0 +1,10 @@
+Private Sub Workbook_Open()
+    ThisWorkbook.Protect Password:="3097"
+    Conos.Protect Password:="3097", UserInterfaceOnly:=True
+    consumo.Protect Password:="3097", UserInterfaceOnly:=True
+    Exist.Protect Password:="3097", UserInterfaceOnly:=True
+    gruposHerramientas.Protect Password:="3097", UserInterfaceOnly:=True
+    Interfaz.Protect Password:="3097", UserInterfaceOnly:=True
+    OPsheet.Protect Password:="3097", UserInterfaceOnly:=True
+    sumaConsumos.Protect Password:="3097", UserInterfaceOnly:=True
+End Sub
