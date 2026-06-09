@@ -50,14 +50,21 @@ Private Sub UserForm_Initialize()
 End Sub
 
 Private Sub UserForm_Activate()
-    Dim listaConsumos() As Variant
-    Dim pt As PivotTable
-    Dim ultFila As Long
-    Dim n As Integer
-    Dim indice(10)
-    Dim vector(10)
-    Dim numFilas As Long
-    Dim pt2 As PivotTable
+    'Dim listaConsumos() As Variant
+    'Dim pt As PivotTable
+    'Dim ultFila As Long
+    'Dim n As Integer
+    'Dim indice(10)
+    'Dim vector(10)
+    'Dim numFilas As Long
+    'Dim pt2 As PivotTable
+    
+    Dim dictConsumos As Object, dictGrupos As Object
+    Dim vDatos As Variant
+    Dim arrTop(1 To 10, 1 To 2) As Variant
+    Dim cantConsumo As Double
+    Dim pos As Long, p As Long, k As Variant
+    Dim miGrupo As String
     
     Me.elementosPO.Visible = False
     Me.lblPO3.Visible = False
@@ -86,49 +93,105 @@ Private Sub UserForm_Activate()
         .Left = (Me.Width - .Width) * 0.25
     End With
 
-    Set pt = sumaConsumos.PivotTables("dinamicaConsumos2")
-    ultFila = pt.TableRange1.Rows.Count
+    'Set pt = sumaConsumos.PivotTables("dinamicaConsumos2")
+    'ultFila = pt.TableRange1.Rows.Count
     
-    For i = 1 To 10
-        vector(i) = 3.14159265358979 ^ 10
-    Next i
+    'For i = 1 To 10
+    '    vector(i) = 3.14159265358979 ^ 10
+    'Next i
     
-    ReDim listaConsumos(1 To 10, 1 To 2)
-    For i = 1 To 10
-        n = 0
-        For j = 2 To (ultFila - 1)
-            If sumaConsumos.Range("B" & j).Value > n And sumaConsumos.Range("B" & j).Value < vector(i) Then
-                n = sumaConsumos.Range("B" & j).Value
-                indice(i) = j
-            Else
-                n = n
+    'ReDim listaConsumos(1 To 10, 1 To 2)
+    'For i = 1 To 10
+    '    n = 0
+    '    For j = 2 To (ultFila - 1)
+    '        If sumaConsumos.Range("B" & j).Value > n And sumaConsumos.Range("B" & j).Value < vector(i) Then
+    '            n = sumaConsumos.Range("B" & j).Value
+    '            indice(i) = j
+    '        Else
+    '            n = n
+    '        End If
+    '    Next j
+    '    For k = i To 10
+    '        vector(k) = n
+    '    Next k
+    '    listaConsumos(i, 1) = sumaConsumos.Range("A" & indice(i)).Value
+    '    listaConsumos(i, 2) = sumaConsumos.Range("B" & indice(i)).Value
+    'Next i
+    
+    Set dictConsumos = CreateObject("Scripting.Dictionary")
+    dictConsumos.CompareMode = vbTextCompare
+    
+    ' 1. Obtener Top 10 Consumos directamente de DailyConsumption
+    If consumo.ListObjects("DailyConsumption").ListRows.Count > 0 Then
+        vDatos = consumo.ListObjects("DailyConsumption").DataBodyRange.Value
+        For i = 1 To UBound(vDatos, 1)
+            If Not IsEmpty(vDatos(i, 1)) Then
+                ' Sumamos el absoluto de la cantidad (Columna 4)
+                cantConsumo = Abs(Val(vDatos(i, 4)))
+                If dictConsumos.Exists(CStr(vDatos(i, 1))) Then
+                    dictConsumos(CStr(vDatos(i, 1))) = dictConsumos(CStr(vDatos(i, 1))) + cantConsumo
+                Else
+                    dictConsumos.Add CStr(vDatos(i, 1)), cantConsumo
+                End If
             End If
-        Next j
-        For k = i To 10
-            vector(k) = n
-        Next k
-        listaConsumos(i, 1) = sumaConsumos.Range("A" & indice(i)).Value
-        listaConsumos(i, 2) = sumaConsumos.Range("B" & indice(i)).Value
+        Next i
+    End If
+    
+    For i = 1 To 10
+        arrTop(i, 1) = "": arrTop(i, 2) = 0
     Next i
+    
+    ' Clasificamos los 10 mayores matemáticamente
+    For Each k In dictConsumos.keys
+        cantConsumo = dictConsumos(k)
+        If cantConsumo > arrTop(10, 2) Then
+            pos = 10
+            
+            ' --- INICIO DE CORRECCIÓN ---
+            Do While pos > 1
+                If cantConsumo > arrTop(pos - 1, 2) Then
+                    pos = pos - 1
+                Else
+                    Exit Do ' Rompe el ciclo sin evaluar índices que no existen
+                End If
+            Loop
+            ' --- FIN DE CORRECCIÓN ---
+            
+            For p = 10 To pos + 1 Step -1
+                arrTop(p, 1) = arrTop(p - 1, 1)
+                arrTop(p, 2) = arrTop(p - 1, 2)
+            Next p
+            arrTop(pos, 1) = k
+            arrTop(pos, 2) = cantConsumo
+        End If
+    Next k
     
     With Me.ListBox1
         .Height = Me.Height * 0.6
         .Width = Me.Width * 0.9
         .Top = Me.Height * 0.2
         .Left = Me.Width * 0.02
-        .List = listaConsumos
+        .List = arrTop
         .Font.Size = .Height * 0.04
-        .TextAlign = fmTextAlignCenter
-        .ColumnWidths = Int(.Width * 0.7) & ";" & _
-                        Int(.Width * 0.3)
+        .ColumnWidths = Me.ListBox1.Width * 0.7 & ";" & Me.ListBox1.Width * 0.3
     End With
     
-    With Me.gruposBox
-        Set pt2 = gruposHerramientas.PivotTables("unicosGrupos")
-        numFilas = pt2.TableRange1.Rows.Count
-        For i = 2 To (numFilas - 2)
-            .AddItem pt2.RowRange(i, 1)
+    Set dictGrupos = CreateObject("Scripting.Dictionary")
+    dictGrupos.CompareMode = vbTextCompare
+    Me.gruposBox.Clear
+    
+    If Exist.ListObjects("tabExistencias").ListRows.Count > 0 Then
+        vDatos = Exist.ListObjects("tabExistencias").DataBodyRange.Value
+        For i = 1 To UBound(vDatos, 1)
+            miGrupo = CStr(vDatos(i, 6)) ' Columna 6 es la F (Grupos)
+            If miGrupo <> "" And Not dictGrupos.Exists(miGrupo) Then
+                dictGrupos.Add miGrupo, 1
+                Me.gruposBox.AddItem miGrupo
+            End If
         Next i
+    End If
+    
+    With Me.gruposBox
         .Height = Me.Height * 0.055
         .Width = Me.Width * 0.31
         .Top = Me.Height * 0.08
@@ -229,12 +292,12 @@ Private Sub UserForm_Activate()
         .Top = Me.Height * 0.2
         .Left = Me.Width * 0.02
         .ColumnCount = 6
-        .ColumnWidths = Int(Me.elementosPO.Width * 0.09) & ";" & _
-                        Int(Me.elementosPO.Width * 0.52) & ";" & _
-                        Int(Me.elementosPO.Width * 0.08) & ";" & _
-                        Int(Me.elementosPO.Width * 0.08) & ";" & _
-                        Int(Me.elementosPO.Width * 0.1) & ";" & _
-                        Int(Me.elementosPO.Width * 0.11) & ";"
+        .ColumnWidths = Me.elementosPO.Width * 0.09 & ";" & _
+                        Me.elementosPO.Width * 0.52 & ";" & _
+                        Me.elementosPO.Width * 0.08 & ";" & _
+                        Me.elementosPO.Width * 0.08 & ";" & _
+                        Me.elementosPO.Width * 0.1 & ";" & _
+                        Me.elementosPO.Width * 0.11 & ";"
         .TextAlign = fmTextAlignCenter
     End With
     
@@ -808,7 +871,7 @@ Private Sub ordenesDeCompra()
         .Top = Me.Height * 0.2
         .Left = Me.Width * 0.02
         .ColumnCount = 2
-        .ColumnWidths = Int(.Width * 0.5) & ";" & Int(.Width * 0.5)
+        .ColumnWidths = .Width * 0.5 & ";" & .Width * 0.5
         '.TextAlign = fmTextAlignCenter
     End With
 End Sub
@@ -1125,11 +1188,11 @@ Sub FiltrarHistorial()
         Next j
         With Me.listBoxHistorial
             .ColumnCount = 5
-            .ColumnWidths = Int(.Width * 0.17) & ";" & _
-                            Int(.Width * 0.5) & ";" & _
-                            Int(.Width * 0.12) & ";" & _
-                            Int(.Width * 0.12) & ";" & _
-                            Int(.Width * 0.08)
+            .ColumnWidths = .Width * 0.17 & ";" & _
+                            .Width * 0.5 & ";" & _
+                            .Width * 0.12 & ";" & _
+                            .Width * 0.12 & ";" & _
+                            .Width * 0.08
             .List = finalArr
         End With
     End If
@@ -1267,11 +1330,11 @@ Sub FiltrarAcumulado()
         
         With Me.listBoxAcumulado
             .ColumnCount = 5
-            .ColumnWidths = Int(.Width * 0.11) & ";" & _
-                            Int(.Width * 0.5) & ";" & _
-                            Int(.Width * 0.15) & ";" & _
-                            Int(.Width * 0.15) & ";" & _
-                            Int(.Width * 0.08)
+            .ColumnWidths = .Width * 0.11 & ";" & _
+                            .Width * 0.5 & ";" & _
+                            .Width * 0.15 & ";" & _
+                            .Width * 0.15 & ";" & _
+                            .Width * 0.08
             .List = finalArr
         End With
     End If
@@ -1736,5 +1799,6 @@ Sub RedimensionarPage3()
         .Font.Size = .Height * 0.46
     End With
 End Sub
+
 
 
