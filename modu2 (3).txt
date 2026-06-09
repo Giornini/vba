@@ -5,10 +5,10 @@ Public Sub labelsTamano(frm As Object)
     frm.lblStock2.Visible = True
     frm.lblStock3.Visible = True
     
-    frm.ListBox1.ColumnWidths = Int(frm.ListBox1.Width * 0.35) & ";" & _
-                                Int(frm.ListBox1.Width * 0.39) & ";" & _
-                                Int(frm.ListBox1.Width * 0.095) & ";" & _
-                                Int(frm.ListBox1.Width * 0.08)
+    frm.ListBox1.ColumnWidths = frm.ListBox1.Width * 0.35 & ";" & _
+                                frm.ListBox1.Width * 0.39 & ";" & _
+                                frm.ListBox1.Width * 0.095 & ";" & _
+                                frm.ListBox1.Width * 0.08
 
     frm.lblArt.Width = frm.ListBox1.Width * 0.35
     frm.lblDesc.Width = frm.ListBox1.Width * 0.39
@@ -263,10 +263,10 @@ Public Sub elementosPageDetalles(frm As Object)
         .Left = frm.Width * 0.605
         .ColumnCount = 4
         .Font.Size = 12
-        .ColumnWidths = Int(frm.ListBox2.Width) * 0.26 & ";" & _
-                        Int(frm.ListBox2.Width) * 0.3 & ";" & _
-                        Int(frm.ListBox2.Width) * 0.28 & ";" & _
-                        Int(frm.ListBox2.Width) * 0.15
+        .ColumnWidths = frm.ListBox2.Width * 0.26 & ";" & _
+                        frm.ListBox2.Width * 0.3 & ";" & _
+                        frm.ListBox2.Width * 0.28 & ";" & _
+                        frm.ListBox2.Width * 0.15
         .TextAlign = fmTextAlignLeft
     End With
     
@@ -393,5 +393,6 @@ Public Sub plantilla(frm As Object)
         MsgBox "Selecciona un artículo.", vbExclamation, "Error"
     End If
 End Sub
+
 
 
