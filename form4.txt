@@ -26,7 +26,6 @@ Private Sub Combobox1_change()
     End If
 End Sub
 
-
 Private Sub textbox1_change()
     If Me.TextBox1.Value <> "" And Me.TextBox1.Value > 0 Then
         Me.TextBox1.BackColor = 12648384
@@ -170,10 +169,10 @@ Private Sub UserForm_Activate()
         .Top = Me.Height * 0.4
         .Left = Me.Width * 0.47
         .ColumnCount = 4
-        .ColumnWidths = Int(Me.caja1.Width * 0.45) & ";" & _
-                        Int(Me.caja1.Width * 0.2) & ";" & _
-                        Int(Me.caja1.Width * 0.1) & ";" & _
-                        Int(Me.caja1.Width * 0.2)
+        .ColumnWidths = Me.caja1.Width * 0.45 & ";" & _
+                        Me.caja1.Width * 0.2 & ";" & _
+                        Me.caja1.Width * 0.1 & ";" & _
+                        Me.caja1.Width * 0.2
         .Font.Size = Me.Height * 0.026
         .TextAlign = fmTextAlignCenter
     End With
@@ -331,8 +330,8 @@ Private Sub UserForm_Activate()
         .Top = Me.Height * 0.4
         .Left = Me.Width * 0.03
         .ColumnCount = 2
-        .ColumnWidths = Int(Me.caja2.Width * 0.6) & ";" & _
-                        Int(Me.caja2.Width * 0.39) & ";"
+        .ColumnWidths = Me.caja2.Width * 0.6 & ";" & _
+                        Me.caja2.Width * 0.39 & ";"
         .Font.Size = Me.Height * 0.026
         .TextAlign = fmTextAlignCenter
     End With
@@ -468,21 +467,26 @@ Private Sub btAgregar_Click()
 End Sub
 
 Private Sub commandButton1_click()
-    Dim newRow As ListRow
-    Dim nFilas As Long
+    Dim tblConsumo As ListObject
+    Dim arrNuevosConsumos() As Variant
     Dim i As Long
     Dim tipoMovimiento As String
     Dim cantidad As Double
+    Dim nItems As Long
+    Dim newRow As Range
+   
+    nItems = caja1.ListCount
+    If nItems = 0 Then Exit Sub
     
-    nFilas = consumo.ListObjects("dailyConsumption").ListRows.Count + 2
-    ReDim vector(1 To caja1.ListCount, 1 To 4)
+    Set tblConsumo = consumo.ListObjects("dailyConsumption")
+    ReDim arrNuevosConsumos(1 To nItems, 1 To 6)
+    ReDim vector(1 To nItems, 1 To 4)
     
-    For i = 1 To caja1.ListCount
-        consumo.ListObjects("dailyConsumption").ListRows.Add.Range(1, 1).Value = caja1.List(i - 1, 0)
-        consumo.ListObjects("dailyConsumption").Range(nFilas, 2).Value = caja1.List(i - 1, 1)
+    For i = 1 To nItems
+        arrNuevosConsumos(i, 1) = caja1.List(i - 1, 0)
+        arrNuevosConsumos(i, 2) = caja1.List(i - 1, 1)
         
         cantidad = Val(caja1.List(i - 1, 2))
-        
         If modo = True Then
             tipoMovimiento = "Retiro"
             cantidad = -cantidad
@@ -490,27 +494,31 @@ Private Sub commandButton1_click()
             tipoMovimiento = "Entrada"
         End If
         
-        consumo.ListObjects("dailyConsumption").Range(nFilas, 3).Value = tipoMovimiento
-        consumo.ListObjects("dailyConsumption").Range(nFilas, 4).Value = cantidad
+        arrNuevosConsumos(i, 3) = tipoMovimiento
+        arrNuevosConsumos(i, 4) = cantidad
+        arrNuevosConsumos(i, 5) = Now
+        arrNuevosConsumos(i, 6) = caja1.List(i - 1, 3)
         
-        With consumo.ListObjects("dailyConsumption").Range(nFilas, 5)
-            .Value = Format(Now, "dd/mm/yyyy hh:mm:ss")
-            .NumberFormat = "dd/mm/yyyy hh:mm:ss"
-        End With
-        
-        consumo.ListObjects("dailyConsumption").Range(nFilas, 6).Value = caja1.List(i - 1, 3)
-        
-        vector(i, 1) = caja1.List(i - 1, 0)
-        vector(i, 2) = caja1.List(i - 1, 1)
-        vector(i, 3) = caja1.List(i - 1, 2)
-        vector(i, 4) = caja1.List(i - 1, 3)
-        nFilas = nFilas + 1
+        vector(i, 1) = arrNuevosConsumos(i, 1)
+        vector(i, 2) = arrNuevosConsumos(i, 2)
+        vector(i, 3) = Abs(cantidad)
+        vector(i, 4) = arrNuevosConsumos(i, 6)
     Next i
+    
+    Set newRow = tblConsumo.ListRows.Add.Range
+    If nItems > 1 Then
+        newRow.Resize(nItems, 6).Value = arrNuevosConsumos
+    Else
+        newRow.Resize(1, 6).Value = arrNuevosConsumos
+    End If
+    
+    tblConsumo.DataBodyRange.Columns(5).NumberFormat = "dd/mm/yyyy hh:mm:ss"
     
     Me.ComboBox1.Value = ""
     Me.TextBox1.Value = ""
     Me.CheckBox1.Value = False
     Me.cmbUsuario.Value = ""
+    
     Call consumos
     
     Unload Me
@@ -518,36 +526,48 @@ Private Sub commandButton1_click()
 End Sub
 
 Sub consumos()
-    Dim tableConsumption As ListObject
-    Dim tableExistencias As ListObject
-    Dim cell As Range
-    Dim fin As Long
-    Dim i As Long
+    Dim tblExistencias As ListObject
+    Dim vExistencias As Variant
+    Dim dictRows As Object
+    Dim i As Long, filaReal As Long
+    Dim artBuscar As String
     
-    Set tableConsumption = consumo.ListObjects("DailyConsumption")
-    Set tableExistencias = Exist.ListObjects("tabExistencias")
-    fin = Exist.ListObjects("tabExistencias").ListRows.Count + 1
+    Set tblExistencias = Exist.ListObjects("tabExistencias")
+    If tblExistencias.ListRows.Count = 0 Then Exit Sub
     
-    For i = 1 To UBound(vector, 1)
-        For Each cell In Exist.Range("D2:D" & fin)
-            If cell = vector(i, 1) Then
-                If vector(i, 2) = "Nuevo" Then
-                    If modo Then
-                        tableExistencias.Range(cell.row, 8) = tableExistencias.Range(cell.row, 8) - vector(i, 3)
-                    Else
-                        tableExistencias.Range(cell.row, 8) = tableExistencias.Range(cell.row, 8) + vector(i, 3)
-                    End If
-                Else
-                    If modo Then
-                        tableExistencias.Range(cell.row, 9) = tableExistencias.Range(cell.row, 9) - vector(i, 3)
-                    Else
-                        tableExistencias.Range(cell.row, 9) = tableExistencias.Range(cell.row, 9) + vector(i, 3)
-                    End If
-                End If
-            End If
-        Next cell
+    vExistencias = tblExistencias.DataBodyRange.Value
+    Set dictRows = CreateObject("Scripting.Dictionary")
+    dictRows.CompareMode = vbTextCompare
+    
+    For i = 1 To UBound(vExistencias, 1)
+        If Not IsEmpty(vExistencias(i, 4)) Then
+            dictRows(CStr(vExistencias(i, 4))) = i
+        End If
     Next i
     
+    For i = 1 To UBound(vector, 1)
+        artBuscar = CStr(vector(i, 1))
+        
+        If dictRows.Exists(artBuscar) Then
+            filaReal = dictRows(artBuscar)
+            
+            If vector(i, 2) = "Nuevo" Then
+                If modo Then
+                    vExistencias(filaReal, 8) = vExistencias(filaReal, 8) - vector(i, 3)
+                Else
+                    vExistencias(filaReal, 8) = vExistencias(filaReal, 8) + vector(i, 3)
+                End If
+            Else
+                If modo Then
+                    vExistencias(filaReal, 9) = vExistencias(filaReal, 9) - vector(i, 3)
+                Else
+                    vExistencias(filaReal, 9) = vExistencias(filaReal, 9) + vector(i, 3)
+                End If
+            End If
+        End If
+    Next i
+    
+    tblExistencias.DataBodyRange.Value = vExistencias
     Me.caja1.Clear
 End Sub
 
@@ -660,5 +680,6 @@ End Sub
 
 Private Sub UserForm_Terminate()
 End Sub
+
 
 
